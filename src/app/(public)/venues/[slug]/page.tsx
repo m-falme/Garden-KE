@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MapPin } from "lucide-react";
+import { EventBuilder } from "@/components/event-builder";
+import { getVendorsForArea } from "@/lib/queries/vendors";
 import { getActiveVenueSlugs, getVenueBySlug } from "@/lib/queries/venues";
 import {
   PLACEHOLDER_GRADIENTS,
@@ -32,6 +34,8 @@ async function VenueDetails({ params }: { params: VenuePageProps["params"] }) {
     notFound();
   }
 
+  const vendors = await getVendorsForArea(venue.area);
+
   return (
     <main>
       <div
@@ -46,7 +50,7 @@ async function VenueDetails({ params }: { params: VenuePageProps["params"] }) {
         </Link>
       </div>
 
-      <div className="relative -mt-6 flex flex-col gap-6 rounded-t-3xl bg-background px-5 pt-6 pb-8">
+      <div className="relative -mt-6 flex flex-col gap-6 rounded-t-3xl bg-background px-5 pt-6">
         <header className="flex flex-col gap-2">
           <h1 className="font-heading text-[28px] leading-tight font-bold tracking-tight">
             {venue.title}
@@ -66,23 +70,20 @@ async function VenueDetails({ params }: { params: VenuePageProps["params"] }) {
         </p>
 
         <section aria-labelledby="included-heading" className="flex flex-col gap-3">
-          <h2
-            id="included-heading"
-            className="font-heading text-xl font-bold"
-          >
+          <h2 id="included-heading" className="font-heading text-xl font-bold">
             What&apos;s included
           </h2>
           <dl className="grid grid-cols-2 gap-2.5">
             {getInclusions(venue).map((item) => (
               <div key={item.label} className="rounded-2xl border bg-card p-3.5">
                 <dt className="text-sm font-semibold">{item.label}</dt>
-                <dd className="text-[13px] text-muted-foreground">
-                  {item.value}
-                </dd>
+                <dd className="text-[13px] text-muted-foreground">{item.value}</dd>
               </div>
             ))}
           </dl>
         </section>
+
+        <EventBuilder venue={venue} vendors={vendors} />
       </div>
     </main>
   );
