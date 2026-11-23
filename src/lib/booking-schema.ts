@@ -23,7 +23,7 @@ function isRealDate(value: string): boolean {
 }
 
 const choiceSchema = z.discriminatedUnion("fulfillment", [
-    z.object({ fulfilllment:z.literal("venue_included") }),
+    z.object({ fulfillment:z.literal("venue_included") }),
     z.object({
         fulfillment: z.literal("platform_vendor"),
         vendorId: z.string().min(1).max(64),
@@ -61,7 +61,7 @@ export const bookingRequestSchema = z.object({
         .min(1, "Enter at least 1 guest")
         .max(500, "That is too many guests"),
     eventType: z.enum(EVENT_TYPES),
-    Selection: selectionSchema,        
+    selection: selectionSchema,        
 });
 
-export type bookingRequest = z.infer<typeof bookingRequestSchema>;
+export type BookingRequest = z.infer<typeof bookingRequestSchema>;

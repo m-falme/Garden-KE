@@ -140,3 +140,18 @@ export function buildQuote(
     hasSeparatelyPricedItems: lines.some((line) => line.priceKes === null),
   };
 }
+
+export function isSameChoice(
+  current: AddonChoice | undefined,
+  other: AddonChoice,
+): boolean {
+  if (!current) return false;
+  if (current.fulfillment !== other.fulfillment) return false;
+  if (
+    current.fulfillment === "platform_vendor" &&
+    other.fulfillment === "platform_vendor"
+  ) {
+    return current.vendorId === other.vendorId;
+  }
+  return true;
+}
