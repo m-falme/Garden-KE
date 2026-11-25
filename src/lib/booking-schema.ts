@@ -1,13 +1,5 @@
 import { z } from "zod";
-
-export const EVENT_TYPES = [
-    "Graduation party",
-    "Birthday",
-    "Bridal shower",
-    "Chama gathering",
-    "Family & Friends fun day",
-    "Other",
-]   as const;
+import { EVENT_TYPES } from "./event-types";
 
 export type EventType = (typeof EVENT_TYPES)[number];
 

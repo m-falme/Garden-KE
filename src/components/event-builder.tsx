@@ -1,12 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  useState,
+  useTransition,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import { submitBookingRequest } from "@/app/actions/booking";
+import { EVENT_TYPES } from "@/lib/event-types";
 import {
   ADDON_CATEGORIES,
   ADDON_LABELS,
   buildQuote,
   formatKes,
   getAddonOptions,
+  isSameChoice,
   type AddonCategory,
   type AddonChoice,
   type Selection,
@@ -19,17 +28,15 @@ type EventBuilderProps = {
   vendors: PublicVendor[];
 };
 
-function isSameChoice(current: AddonChoice | undefined, other: AddonChoice): boolean {
-  if (!current) return false;
-  if (current.fulfillment !== other.fulfillment) return false;
-  if (
-    current.fulfillment === "platform_vendor" &&
-    other.fulfillment === "platform_vendor"
-  ) {
-    return current.vendorId === other.vendorId;
-  }
-  return true;
-}
+type FormErrors = {
+  message: string | null;
+  fields: Partial<Record<string, string[]>>;
+};
+
+const NO_ERRORS: FormErrors = { message: null, fields: {} };
+
+const INPUT_CLASS =
+  "h-12 w-full rounded-xl border bg-background px-4 text-base";
 
 function priceText(priceKes: number | null): string {
   if (priceKes === null) return "Quoted separately";
@@ -37,8 +44,37 @@ function priceText(priceKes: number | null): string {
   return `+${formatKes(priceKes)}`;
 }
 
+function Field({
+  label,
+  name,
+  error,
+  children,
+}: {
+  label: string;
+  name: string;
+  error: string | undefined;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={name} className="text-sm font-medium">
+        {label}
+      </label>
+      {children}
+      {error && (
+        <p id={`${name}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function EventBuilder({ venue, vendors }: EventBuilderProps) {
+  const router = useRouter();
   const [selection, setSelection] = useState<Selection>({});
+  const [errors, setErrors] = useState<FormErrors>(NO_ERRORS);
+  const [isPending, startTransition] = useTransition();
 
   function toggle(category: AddonCategory, choice: AddonChoice) {
     setSelection((current) => {
@@ -48,6 +84,48 @@ export function EventBuilder({ venue, vendors }: EventBuilderProps) {
         return next;
       }
       return { ...current, [category]: choice };
+    });
+  }
+
+  function fieldError(name: string): string | undefined {
+    return errors.fields[name]?.[0];
+  }
+
+  function fieldProps(name: string) {
+    const hasError = fieldError(name) !== undefined;
+    return {
+      id: name,
+      name,
+      "aria-invalid": hasError ? true : undefined,
+      "aria-describedby": hasError ? `${name}-error` : undefined,
+    };
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const input = {
+      ...Object.fromEntries(formData),
+      venueSlug: venue.slug,
+      selection,
+    };
+
+    setErrors(NO_ERRORS);
+
+    startTransition(async () => {
+      try {
+        const result = await submitBookingRequest(input);
+        if (result.ok) {
+          router.push(`/request-sent/${result.bookingId}`);
+          return;
+        }
+        setErrors({ message: result.error, fields: result.fieldErrors });
+      } catch {
+        setErrors({
+          message: "Something went wrong. Please try again.",
+          fields: {},
+        });
+      }
     });
   }
 
@@ -113,6 +191,93 @@ export function EventBuilder({ venue, vendors }: EventBuilderProps) {
         })}
       </section>
 
+      <section aria-labelledby="details-heading" className="flex flex-col gap-4 pb-2">
+        <div className="flex flex-col gap-1">
+          <h2 id="details-heading" className="font-heading text-xl font-bold">
+            Your details
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            We use these to confirm your date and send your quote.
+          </p>
+        </div>
+
+        <form
+          id="request-form"
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4"
+        >
+          <Field label="Event date" name="eventDate" error={fieldError("eventDate")}>
+            <input
+              {...fieldProps("eventDate")}
+              type="date"
+              required
+              className={INPUT_CLASS}
+            />
+          </Field>
+
+          <Field label="Number of guests" name="guestCount" error={fieldError("guestCount")}>
+            <input
+              {...fieldProps("guestCount")}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={venue.capacity_max}
+              placeholder={`Up to ${venue.capacity_max}`}
+              required
+              className={INPUT_CLASS}
+            />
+          </Field>
+
+          <Field label="Type of event" name="eventType" error={fieldError("eventType")}>
+            <select
+              {...fieldProps("eventType")}
+              defaultValue=""
+              required
+              className={INPUT_CLASS}
+            >
+              <option value="" disabled>
+                Choose an event type
+              </option>
+              {EVENT_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Your name" name="clientName" error={fieldError("clientName")}>
+            <input
+              {...fieldProps("clientName")}
+              type="text"
+              autoComplete="name"
+              required
+              className={INPUT_CLASS}
+            />
+          </Field>
+
+          <Field label="Phone number" name="clientPhone" error={fieldError("clientPhone")}>
+            <input
+              {...fieldProps("clientPhone")}
+              type="tel"
+              autoComplete="tel"
+              placeholder="0712 345 678"
+              required
+              className={INPUT_CLASS}
+            />
+          </Field>
+
+          {errors.message && (
+            <p
+              role="alert"
+              className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive"
+            >
+              {errors.message}
+            </p>
+          )}
+        </form>
+      </section>
+
       <div className="sticky bottom-0 -mx-5 flex items-center justify-between gap-4 border-t bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="flex flex-col">
           <span className="text-xs text-muted-foreground">
@@ -125,11 +290,12 @@ export function EventBuilder({ venue, vendors }: EventBuilderProps) {
           </span>
         </div>
         <button
-          type="button"
-          disabled
-          className="h-13 shrink-0 rounded-full bg-primary px-7 text-base font-semibold text-primary-foreground opacity-60"
+          type="submit"
+          form="request-form"
+          disabled={isPending}
+          className="h-13 shrink-0 rounded-full bg-primary px-7 text-base font-semibold text-primary-foreground disabled:opacity-60"
         >
-          Request quote
+          {isPending ? "Sending..." : "Request quote"}
         </button>
       </div>
     </>
