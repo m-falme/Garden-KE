@@ -19,3 +19,11 @@ export const publicEnv = {
 export function getSecretKey(): string {
     return required("SUPABASE_SECRET_KEY", process.env.SUPABASE_SECRET_KEY);
 }
+
+
+export function getAdminEmails(): string[] {
+    return required("ADMIN_EMAILS", process.env.ADMIN_EMAILS)
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => email.length > 0);
+}

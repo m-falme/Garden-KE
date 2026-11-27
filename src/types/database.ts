@@ -67,11 +67,13 @@ export type Database = {
           client_name: string
           client_phone: string
           created_at: string
+          deposit_kes: number | null
           estimated_margin_kes: number | null
           event_date: string
           event_type: string
           guest_count: number
           id: string
+          payment_reference: string | null
           reference_code: string
           status: Database["public"]["Enums"]["booking_status"]
           total_client_kes: number
@@ -83,11 +85,13 @@ export type Database = {
           client_name: string
           client_phone: string
           created_at?: string
+          deposit_kes?: number | null
           estimated_margin_kes?: number | null
           event_date: string
           event_type: string
           guest_count: number
           id?: string
+          payment_reference?: string | null
           reference_code?: string
           status?: Database["public"]["Enums"]["booking_status"]
           total_client_kes?: number
@@ -99,11 +103,13 @@ export type Database = {
           client_name?: string
           client_phone?: string
           created_at?: string
+          deposit_kes?: number | null
           estimated_margin_kes?: number | null
           event_date?: string
           event_type?: string
           guest_count?: number
           id?: string
+          payment_reference?: string | null
           reference_code?: string
           status?: Database["public"]["Enums"]["booking_status"]
           total_client_kes?: number
